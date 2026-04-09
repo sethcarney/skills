@@ -4,13 +4,13 @@ on:
   push:
     branches: [main]
     tags:
-      - 'v*'
+      - "v*"
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
   workflow_dispatch:
     inputs:
       bump:
-        description: 'Version bump type'
+        description: "Version bump type"
         required: true
         type: choice
         options:
@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -114,15 +114,17 @@ jobs:
           git push
           git push --tags
 
-      - name: Publish to npm
-        id: publish
-        if: steps.version.outputs.bump != 'none'
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Temporarily disable npm publishing while we ship standalone binaries.
+      # Keep the workflow structure intact so release creation still runs.
+      # - name: Publish to npm
+      #   id: publish
+      #   if: steps.version.outputs.bump != 'none'
+      #   run: npm publish --provenance --access public
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        if: steps.publish.outcome == 'success'
+        if: steps.version.outputs.bump != 'none'
         run: |
           VERSION=$(node -p "require('./package.json').version")
 
