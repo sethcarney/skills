@@ -2,7 +2,7 @@ import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
-import { sep } from 'path';
+import { sep, relative } from 'path';
 import { parseSource, getOwnerRepo, parseOwnerRepo, isRepoPrivate } from './source-parser.ts';
 import { searchMultiselect } from './prompts/search-multiselect.ts';
 
@@ -1631,10 +1631,19 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
               blobResult && 'snapshotHash' in skill
                 ? (skill as BlobSkill).snapshotHash
                 : await computeSkillFolderHash(skill.path);
+            // For local paths, store a repo-relative path using POSIX separators
+            // so skills-lock.json is portable across machines and OSes (fixes Windows bug)
+            let lockEntrySource: string;
+            if (parsed.type === 'local') {
+              const rel = relative(cwd, parsed.url).split(sep).join('/');
+              lockEntrySource = rel.startsWith('.') ? rel : './' + rel;
+            } else {
+              lockEntrySource = lockSource || parsed.url;
+            }
             await addSkillToLocalLock(
               skill.name,
               {
-                source: lockSource || parsed.url,
+                source: lockEntrySource,
                 ref: parsed.ref,
                 sourceType: parsed.type,
                 computedHash,

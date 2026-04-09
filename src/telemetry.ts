@@ -77,6 +77,8 @@ function isCI(): boolean {
 }
 
 function isEnabled(): boolean {
+  // Telemetry is opt-in; set ENABLE_TELEMETRY=1 to enable
+  if (!process.env.ENABLE_TELEMETRY) return false;
   return !process.env.DISABLE_TELEMETRY && !process.env.DO_NOT_TRACK;
 }
 
