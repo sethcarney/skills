@@ -6,32 +6,46 @@ The CLI for the open agent skills ecosystem.
 Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [41 more](#available-agents).
 <!-- agent-list:end -->
 
+## Installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sethcarney/skills/main/install.sh | bash
+```
+
+This downloads a prebuilt binary and installs it to `~/.local/bin/skills`. If `~/.local/bin` is not in your `PATH`, the installer will print instructions to add it.
+
+To install to a custom directory, set `INSTALL_DIR` before running:
+
+```bash
+INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/sethcarney/skills/main/install.sh | bash
+```
+
 ## Install a Skill
 
 ```bash
-npx skills add vercel-labs/agent-skills
+skills add vercel-labs/agent-skills
 ```
 
 ### Source Formats
 
 ```bash
 # GitHub shorthand (owner/repo)
-npx skills add vercel-labs/agent-skills
+skills add vercel-labs/agent-skills
 
 # Full GitHub URL
-npx skills add https://github.com/vercel-labs/agent-skills
+skills add https://github.com/vercel-labs/agent-skills
 
 # Direct path to a skill in a repo
-npx skills add https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
+skills add https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
 
 # GitLab URL
-npx skills add https://gitlab.com/org/repo
+skills add https://gitlab.com/org/repo
 
 # Any git URL
-npx skills add git@github.com:vercel-labs/agent-skills.git
+skills add git@github.com:vercel-labs/agent-skills.git
 
 # Local path
-npx skills add ./my-local-skills
+skills add ./my-local-skills
 ```
 
 ### Options
@@ -50,28 +64,28 @@ npx skills add ./my-local-skills
 
 ```bash
 # List skills in a repository
-npx skills add vercel-labs/agent-skills --list
+skills add vercel-labs/agent-skills --list
 
 # Install specific skills
-npx skills add vercel-labs/agent-skills --skill frontend-design --skill skill-creator
+skills add vercel-labs/agent-skills --skill frontend-design --skill skill-creator
 
 # Install a skill with spaces in the name (must be quoted)
-npx skills add owner/repo --skill "Convex Best Practices"
+skills add owner/repo --skill "Convex Best Practices"
 
 # Install to specific agents
-npx skills add vercel-labs/agent-skills -a claude-code -a opencode
+skills add vercel-labs/agent-skills -a claude-code -a opencode
 
 # Non-interactive installation (CI/CD friendly)
-npx skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-code -y
+skills add vercel-labs/agent-skills --skill frontend-design -g -a claude-code -y
 
 # Install all skills from a repo to all agents
-npx skills add vercel-labs/agent-skills --all
+skills add vercel-labs/agent-skills --all
 
 # Install all skills to specific agents
-npx skills add vercel-labs/agent-skills --skill '*' -a claude-code
+skills add vercel-labs/agent-skills --skill '*' -a claude-code
 
 # Install specific skills to all agents
-npx skills add vercel-labs/agent-skills --agent '*' --skill frontend-design
+skills add vercel-labs/agent-skills --agent '*' --skill frontend-design
 ```
 
 ### Installation Scope
@@ -94,12 +108,12 @@ When installing interactively, you can choose:
 
 | Command                      | Description                                    |
 | ---------------------------- | ---------------------------------------------- |
-| `npx skills list`            | List installed skills (alias: `ls`)            |
-| `npx skills find [query]`    | Search for skills interactively or by keyword  |
-| `npx skills remove [skills]` | Remove installed skills from agents            |
-| `npx skills check`           | Check for available skill updates              |
-| `npx skills update`          | Update all installed skills to latest versions |
-| `npx skills init [name]`     | Create a new SKILL.md template                 |
+| `skills list`            | List installed skills (alias: `ls`)            |
+| `skills find [query]`    | Search for skills interactively or by keyword  |
+| `skills remove [skills]` | Remove installed skills from agents            |
+| `skills check`           | Check for available skill updates              |
+| `skills update`          | Update all installed skills to latest versions |
+| `skills init [name]`     | Create a new SKILL.md template                 |
 
 ### `skills list`
 
@@ -107,13 +121,13 @@ List all installed skills. Similar to `npm ls`.
 
 ```bash
 # List all installed skills (project and global)
-npx skills list
+skills list
 
 # List only global skills
-npx skills ls -g
+skills ls -g
 
 # Filter by specific agents
-npx skills ls -a claude-code -a cursor
+skills ls -a claude-code -a cursor
 ```
 
 ### `skills find`
@@ -122,30 +136,30 @@ Search for skills interactively or by keyword.
 
 ```bash
 # Interactive search (fzf-style)
-npx skills find
+skills find
 
 # Search by keyword
-npx skills find typescript
+skills find typescript
 ```
 
 ### `skills check` / `skills update`
 
 ```bash
 # Check if any installed skills have updates
-npx skills check
+skills check
 
 # Update all skills to latest versions
-npx skills update
+skills update
 ```
 
 ### `skills init`
 
 ```bash
 # Create SKILL.md in current directory
-npx skills init
+skills init
 
 # Create a new skill in a subdirectory
-npx skills init my-skill
+skills init my-skill
 ```
 
 ### `skills remove`
@@ -154,31 +168,31 @@ Remove installed skills from agents.
 
 ```bash
 # Remove interactively (select from installed skills)
-npx skills remove
+skills remove
 
 # Remove specific skill by name
-npx skills remove web-design-guidelines
+skills remove web-design-guidelines
 
 # Remove multiple skills
-npx skills remove frontend-design web-design-guidelines
+skills remove frontend-design web-design-guidelines
 
 # Remove from global scope
-npx skills remove --global web-design-guidelines
+skills remove --global web-design-guidelines
 
 # Remove from specific agents only
-npx skills remove --agent claude-code cursor my-skill
+skills remove --agent claude-code cursor my-skill
 
 # Remove all installed skills without confirmation
-npx skills remove --all
+skills remove --all
 
 # Remove all skills from a specific agent
-npx skills remove --skill '*' -a cursor
+skills remove --skill '*' -a cursor
 
 # Remove a specific skill from all agents
-npx skills remove my-skill --agent '*'
+skills remove my-skill --agent '*'
 
 # Use 'rm' alias
-npx skills rm my-skill
+skills rm my-skill
 ```
 
 | Option         | Description                                      |
@@ -412,7 +426,7 @@ Ensure you have write access to the target directory.
 
 ```bash
 # Install internal skills
-INSTALL_INTERNAL_SKILLS=1 npx skills add vercel-labs/agent-skills --list
+INSTALL_INTERNAL_SKILLS=1 skills add vercel-labs/agent-skills --list
 ```
 
 ## Telemetry
