@@ -10,17 +10,31 @@ Supports **OpenCode**, **Claude Code**, **Codex**, **Cursor**, and [41 more](#av
 
 ## Installation
 
+**macOS / Linux**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sethcarney/skills/main/install.sh | bash
 ```
 
-This downloads a prebuilt binary and installs it to `~/.local/bin/skills`. If `~/.local/bin` is not in your `PATH`, the installer will print instructions to add it.
-
-To install to a custom directory, set `INSTALL_DIR` before running:
+Installs to `~/.local/bin/skills`. To use a custom directory:
 
 ```bash
 INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/sethcarney/skills/main/install.sh | bash
 ```
+
+**Windows** (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/sethcarney/skills/main/install.ps1 | iex
+```
+
+Installs to `%USERPROFILE%\.local\bin\skills.exe`. To use a custom directory:
+
+```powershell
+$env:INSTALL_DIR = "C:\tools"; irm https://raw.githubusercontent.com/sethcarney/skills/main/install.ps1 | iex
+```
+
+Both installers download a prebuilt binary and warn if the install directory is not in your `PATH`.
 
 ## Install a Skill
 
