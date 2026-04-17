@@ -117,7 +117,9 @@ export async function runSelfUpdate(currentVersion: string): Promise<void> {
     chmodSync(tmpPath, 0o755);
     renameSync(tmpPath, currentBinary);
     console.log(`${TEXT}Updated to ${latestVersion} successfully.${RESET}`);
-    console.log(`${DIM}Restart your shell or run ${TEXT}skills --version${DIM} to confirm.${RESET}`);
+    console.log(
+      `${DIM}Restart your shell or run ${TEXT}skills --version${DIM} to confirm.${RESET}`
+    );
   } else {
     // Windows cannot replace a running executable directly.
     // Write a helper batch file the user can run after exiting.
