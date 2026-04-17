@@ -2,7 +2,6 @@
 # Usage: irm https://raw.githubusercontent.com/sethcarney/skills/main/install.ps1 | iex
 
 $ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
 
 $Repo = "sethcarney/skills"
 $BinaryName = "skills-windows-x64.exe"
@@ -15,7 +14,7 @@ Write-Host "Downloading skills (windows-x64)..."
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
 $TempFile = Join-Path $env:TEMP "skills-install.exe"
-Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
+(New-Object System.Net.WebClient).DownloadFile($DownloadUrl, $TempFile)
 
 Move-Item -Force $TempFile $InstallPath
 
