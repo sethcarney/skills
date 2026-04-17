@@ -20,14 +20,22 @@ import {
   buildLocalUpdateSource,
   formatSourceInput,
 } from './update-source.ts';
+import { runSelfUpdate } from './self-update.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Injected by Bun --define at binary compile time; undefined when running via Node/npx.
+declare const __SKILLS_VERSION__: string | undefined;
+
 function getVersion(): string {
   try {
+    if (typeof __SKILLS_VERSION__ !== 'undefined') return __SKILLS_VERSION__;
+  } catch {
+    // __SKILLS_VERSION__ not defined (Node/npx runtime)
+  }
+  try {
     const pkgPath = join(__dirname, '..', 'package.json');
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-    return pkg.version;
+    return JSON.parse(readFileSync(pkgPath, 'utf-8')).version;
   } catch {
     return '0.0.0';
   }
@@ -120,6 +128,7 @@ ${BOLD}Manage Skills:${RESET}
 
 ${BOLD}Updates:${RESET}
   update [skills...]   Update skills to latest versions (alias: upgrade)
+  update-cli           Check for CLI updates and self-update the binary
 
 ${BOLD}Update Options:${RESET}
   -g, --global           Update global skills only
@@ -901,6 +910,11 @@ async function main(): Promise<void> {
     case 'update':
     case 'upgrade':
       await runUpdate(restArgs);
+      break;
+    case 'update-cli':
+    case 'self-update':
+    case 'upgrade-cli':
+      await runSelfUpdate(VERSION);
       break;
     case '--help':
     case '-h':
