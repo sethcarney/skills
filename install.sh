@@ -25,7 +25,10 @@ case "$OS" in
     ;;
   *)
     echo "Unsupported OS: $OS"
-    echo "For Windows, download skills-windows-x64.exe from:"
+    echo "For Windows, run the PowerShell installer:"
+    echo "  irm https://raw.githubusercontent.com/${REPO}/main/install.ps1 | iex"
+    echo ""
+    echo "Or download skills-windows-x64.exe directly from:"
     echo "  https://github.com/${REPO}/releases/latest"
     exit 1
     ;;
