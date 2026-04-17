@@ -2,6 +2,7 @@
 # Usage: irm https://raw.githubusercontent.com/sethcarney/skills/main/install.ps1 | iex
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 $Repo = "sethcarney/skills"
 $BinaryName = "skills-windows-x64.exe"
