@@ -2,7 +2,7 @@
 set -e
 
 REPO="sethcarney/skills"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 
 # Detect OS and architecture
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -37,6 +37,9 @@ echo "Downloading skills (${TARGET})..."
 curl -fsSL "$DOWNLOAD_URL" -o /tmp/skills-install
 chmod +x /tmp/skills-install
 
+# Create install directory if it doesn't exist
+mkdir -p "$INSTALL_DIR"
+
 echo "Installing to ${INSTALL_DIR}/skills..."
 if [ -w "$INSTALL_DIR" ]; then
   mv /tmp/skills-install "${INSTALL_DIR}/skills"
@@ -45,4 +48,19 @@ else
 fi
 
 echo ""
-echo "Done! Verify with: skills --version"
+echo "skills installed successfully!"
+
+# Warn if INSTALL_DIR is not in PATH
+case ":$PATH:" in
+  *":${INSTALL_DIR}:"*) ;;
+  *)
+    echo ""
+    echo "Note: ${INSTALL_DIR} is not in your PATH."
+    echo "Add the following line to your ~/.bashrc, ~/.zshrc, or equivalent:"
+    echo ""
+    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo ""
+    ;;
+esac
+
+echo "Verify with: skills --version"
