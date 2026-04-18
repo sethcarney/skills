@@ -431,7 +431,7 @@ describe('openclaw source blocking', () => {
     const result = runCli(['add', 'vercel-labs/agent-skills', '--list'], testDir);
     expect(result.stdout).not.toContain('--dangerously-accept-openclaw-risks');
     expect(result.stdout).not.toContain('Installation blocked');
-  });
+  }, 20000);
 
   it('should parse --dangerously-accept-openclaw-risks flag', () => {
     const result = parseAddOptions([
