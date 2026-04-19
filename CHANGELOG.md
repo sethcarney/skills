@@ -6,6 +6,14 @@ This project is a fork of the upstream [agent-skills](https://agentskills.io) CL
 
 ---
 
+## [1.8.1] — 2026-04-19
+
+### Added
+
+- **Interactive agent selection in `skills install`** — `skills install` now shows the same agent selection prompt as `skills add` before restoring skills. Universal agents (`.agents/skills/`) are always included as locked; the user can additionally select any other agents. Pass `-a <agent>` to skip the prompt with explicit agents, or `-y` to skip it and install to universal agents only.
+
+---
+
 ## [1.8.0] — 2026-04-19
 
 ### Added

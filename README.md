@@ -158,6 +158,15 @@ You can also declare skills manually in `skills-lock.json` without installing th
 
 Running `skills install` will fetch and install all declared skills. The `computedHash` field is written automatically after first install and used to detect changes.
 
+### `skills install` options
+
+| Option                    | Description                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| `-a, --agent <agents...>` | Install to specific agents, skipping the selection prompt                      |
+| `-y, --yes`               | Skip the agent selection prompt; installs to universal agents (`.agents/skills/`) only |
+
+When run without flags, `skills install` shows an interactive agent selection prompt. Universal agents (`.agents/skills/`) are always included and shown as locked — you can additionally select any other agents you want the skills symlinked into.
+
 ### Security Scanning (OSV)
 
 When installing skills from a GitHub source, the CLI queries the [OSV (Open Source Vulnerability) database](https://osv.dev) for any known advisories filed against that repository. This check:

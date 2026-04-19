@@ -261,7 +261,7 @@ export async function promptForAgents(
  * Interactive agent selection using fuzzy search.
  * Shows universal agents as locked (always selected), and other agents as selectable.
  */
-async function selectAgentsInteractive(options: {
+export async function selectAgentsInteractive(options: {
   global?: boolean;
 }): Promise<AgentType[] | symbol> {
   // Filter out agents that don't support global installation when --global is used

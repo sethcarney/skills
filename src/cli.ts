@@ -138,7 +138,12 @@ ${BOLD}Project:${RESET}
   init [name]          Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)
   experimental_sync    Sync skills from node_modules into agent directories
 
+${BOLD}Install Options:${RESET}
+  -a, --agent <agents>   Specify agents to install to (skips agent selection prompt)
+  -y, --yes              Skip agent selection prompt (installs to universal agents only)
+
 ${BOLD}Add Options:${RESET}
+  -p, --project          Force project-scope install (writes to skills-lock.json)
   -g, --global           Install skill globally (user-level) instead of project-level
   -a, --agent <agents>   Specify agents to install to (use '*' for all agents)
   -s, --skill <skills>   Specify skill names to install (use '*' for all skills)
