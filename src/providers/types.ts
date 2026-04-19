@@ -23,7 +23,7 @@ export interface RemoteSkill {
 export interface ProviderMatch {
   /** Whether the URL matches this provider */
   matches: boolean;
-  /** The source identifier for telemetry/storage (e.g., "mintlify/bun.com", "huggingface/hf-skills/hf-jobs") */
+  /** The source identifier for lock file storage (e.g., "mintlify/bun.com", "huggingface/hf-skills/hf-jobs") */
   sourceIdentifier?: string;
 }
 
@@ -33,7 +33,7 @@ export interface ProviderMatch {
  * - Detect if a URL belongs to it
  * - Fetch and parse SKILL.md files
  * - Convert URLs to raw content URLs
- * - Provide source identifiers for telemetry
+ * - Provide source identifiers for lock file storage
  */
 export interface HostProvider {
   /** Unique identifier for this provider (e.g., "mintlify", "huggingface", "github") */

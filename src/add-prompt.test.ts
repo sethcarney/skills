@@ -6,7 +6,6 @@ import * as searchMultiselectModule from './prompts/search-multiselect.js';
 // Mock dependencies
 vi.mock('./skill-lock.js');
 vi.mock('./prompts/search-multiselect.js');
-vi.mock('./telemetry.js', () => ({}));
 
 describe('promptForAgents', () => {
   // Cast to any to avoid AgentType validation in tests
