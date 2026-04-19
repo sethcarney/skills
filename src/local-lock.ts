@@ -23,8 +23,9 @@ export interface LocalSkillLockEntry {
    * SHA-256 hash computed from all files in the skill folder.
    * Unlike the global lock which uses GitHub tree SHA, the local lock
    * computes the hash from actual file contents on disk.
+   * Optional: absent for entries added before first install or via manual declaration.
    */
-  computedHash: string;
+  computedHash?: string;
 }
 
 /**

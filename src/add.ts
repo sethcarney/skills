@@ -3,6 +3,7 @@ import pc from 'picocolors';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { sep, relative } from 'path';
+import { fetchOSVAdvisories, type OSVSeverity } from './osv.ts';
 import { parseSource, getOwnerRepo } from './source-parser.ts';
 import { searchMultiselect } from './prompts/search-multiselect.ts';
 
@@ -44,6 +45,21 @@ import {
   type BlobSkill,
   type BlobInstallResult,
 } from './blob.ts';
+
+function osvSeverityLabel(severity: OSVSeverity | null): string {
+  switch (severity) {
+    case 'CRITICAL':
+      return pc.red(pc.bold('Critical'));
+    case 'HIGH':
+      return pc.red('High');
+    case 'MEDIUM':
+      return pc.yellow('Medium');
+    case 'LOW':
+      return pc.green('Low');
+    default:
+      return pc.dim('Unknown');
+  }
+}
 
 /**
  * Shortens a path for display: replaces homedir with ~ and cwd with .
@@ -305,6 +321,8 @@ async function selectAgentsInteractive(options: {
 
 export interface AddOptions {
   global?: boolean;
+  /** Force project-scope install without prompting. Mutually exclusive with --global. */
+  project?: boolean;
   agent?: string[];
   yes?: boolean;
   skill?: string[];
@@ -1071,6 +1089,13 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       selectedSkills = selected as Skill[];
     }
 
+    // Kick off OSV advisory fetch in parallel while the user answers prompts.
+    // Only runs for GitHub sources; silently skipped otherwise.
+    const ownerRepoForOSV = parsed.type === 'github' ? getOwnerRepo(parsed) : null;
+    const osvPromise = ownerRepoForOSV
+      ? fetchOSVAdvisories(ownerRepoForOSV)
+      : Promise.resolve(null);
+
     let targetAgents: AgentType[];
     const validAgents = Object.keys(agents);
 
@@ -1145,12 +1170,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       }
     }
 
+    // --project forces project scope; --global forces global scope; prompt otherwise
     let installGlobally = options.global ?? false;
+    if (options.project) installGlobally = false;
 
     // Check if any selected agents support global installation
     const supportsGlobal = targetAgents.some((a) => agents[a].globalSkillsDir !== undefined);
 
-    if (options.global === undefined && !options.yes && supportsGlobal) {
+    if (options.global === undefined && !options.project && !options.yes && supportsGlobal) {
       const scope = await p.select({
         message: 'Installation scope',
         options: [
@@ -1291,6 +1318,27 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
 
     console.log();
     p.note(summaryLines.join('\n'), 'Installation Summary');
+
+    // Await OSV results and display if any advisories found
+    try {
+      const osvResult = await osvPromise;
+      if (osvResult && osvResult.count > 0) {
+        const lines = [
+          `${pc.yellow('⚠')}  ${pc.bold(String(osvResult.count))} known advisor${osvResult.count === 1 ? 'y' : 'ies'} — highest severity: ${osvSeverityLabel(osvResult.maxSeverity)}`,
+          '',
+          ...osvResult.advisories.slice(0, 5).map((a) => {
+            const summary = a.summary ? pc.dim(` — ${a.summary}`) : '';
+            return `  ${pc.cyan(a.id)}${summary}`;
+          }),
+          ...(osvResult.count > 5 ? [pc.dim(`  … and ${osvResult.count - 5} more`)] : []),
+          '',
+          pc.dim(`Details: https://osv.dev/?q=${encodeURIComponent(ownerRepoForOSV ?? '')}`),
+        ];
+        p.note(lines.join('\n'), 'Security Advisories (OSV)');
+      }
+    } catch {
+      // Never block installation on OSV errors
+    }
 
     if (!options.yes) {
       const confirmed = await p.confirm({ message: 'Proceed with installation?' });
@@ -1680,6 +1728,8 @@ export function parseAddOptions(args: string[]): { source: string[]; options: Ad
 
     if (arg === '-g' || arg === '--global') {
       options.global = true;
+    } else if (arg === '-p' || arg === '--project') {
+      options.project = true;
     } else if (arg === '-y' || arg === '--yes') {
       options.yes = true;
     } else if (arg === '-l' || arg === '--list') {

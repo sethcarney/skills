@@ -7,8 +7,9 @@ A custom fork of the open agent skills ecosystem CLI with several enhancements o
 This fork adds a handful of new features on top of the upstream [agent-skills](https://agentskills.io) CLI:
 
 - **Self-update command** — Run `skills update-cli` to update the CLI binary in place, no package manager needed
-- **Local skills support** — Per-project skills are discovered and loaded automatically for tighter workspace integration
-- **No telemetry** — Usage tracking code has been removed; no data is collected or sent
+- **Project skills lock** — Track both local and remote skills in `skills-lock.json`; commit it and teammates get the same set with `skills install`
+- **OSV vulnerability scanning** — Checks the [OSV database](https://osv.dev) for known advisories against any GitHub source before you confirm installation. No API key required.
+- **No telemetry** — All usage tracking and third-party audit API calls have been removed; no data is collected or sent
 - **Bun binary distribution** — Compiled directly to standalone native executables via Bun instead of npm/npx; no Node.js runtime required
 
 <!-- agent-list:start -->
@@ -77,7 +78,8 @@ skills add ./my-local-skills
 
 | Option                    | Description                                                                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-g, --global`            | Install to user directory instead of project                                                                                                       |
+| `-p, --project`           | Force project-scope install without prompting (writes to `skills-lock.json`)                                                                       |
+| `-g, --global`            | Force global install without prompting (writes to `~/.agents/.skill-lock.json`)                                                                    |
 | `-a, --agent <agents...>` | <!-- agent-names:start -->Target specific agents (e.g., `claude-code`, `codex`). See [Available Agents](#available-agents)<!-- agent-names:end --> |
 | `-s, --skill <skills...>` | Install specific skills by name (use `'*'` for all skills)                                                                                         |
 | `-l, --list`              | List available skills without installing                                                                                                           |
@@ -119,6 +121,66 @@ skills add vercel-labs/agent-skills --agent '*' --skill frontend-design
 | ----------- | --------- | ------------------- | --------------------------------------------- |
 | **Project** | (default) | `./<agent>/skills/` | Committed with your project, shared with team |
 | **Global**  | `-g`      | `~/<agent>/skills/` | Available across all projects                 |
+
+### Project Skills and `skills-lock.json`
+
+`skills-lock.json` is the project-level lock file, designed to be committed to version control. It tracks every skill installed at project scope — both local paths and remote GitHub sources — so teammates can reproduce the exact same set with a single command.
+
+```bash
+# Install a remote skill at project scope (no global prompt)
+skills add owner/repo --project
+
+# Install a local skill at project scope
+skills add ./src/my-skill --project
+
+# Restore all skills from skills-lock.json (e.g., after git clone)
+skills install
+```
+
+You can also declare skills manually in `skills-lock.json` without installing them first:
+
+```json
+{
+  "version": 1,
+  "skills": {
+    "my-local-skill": {
+      "source": "./src/skills/my-skill",
+      "sourceType": "local"
+    },
+    "shared-skill": {
+      "source": "owner/shared-skills",
+      "sourceType": "github",
+      "ref": "main"
+    }
+  }
+}
+```
+
+Running `skills install` will fetch and install all declared skills. The `computedHash` field is written automatically after first install and used to detect changes.
+
+### Security Scanning (OSV)
+
+When installing skills from a GitHub source, the CLI queries the [OSV (Open Source Vulnerability) database](https://osv.dev) for any known advisories filed against that repository. This check:
+
+- Runs in parallel with the agent/scope prompts — zero added latency
+- Requires no API key or authentication
+- Times out silently after 3 seconds if OSV is unreachable
+- **Never blocks installation** — the result is advisory only
+
+If advisories are found, a note is shown before the confirmation prompt:
+
+```
+┌─ Security Advisories (OSV) ────────────────────────────────────┐
+│ ⚠  2 known advisories — highest severity: High                  │
+│                                                                  │
+│   GHSA-xxxx-xxxx-xxxx — Example advisory summary               │
+│   GHSA-yyyy-yyyy-yyyy — Another advisory                        │
+│                                                                  │
+│ Details: https://osv.dev/?q=owner%2Frepo                        │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+If no advisories are found, nothing is shown (clean installs stay quiet).
 
 ### Installation Methods
 
