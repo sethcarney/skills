@@ -6,6 +6,14 @@ This project is a fork of the upstream [agent-skills](https://agentskills.io) CL
 
 ---
 
+## [1.8.2] — 2026-04-19
+
+### Fixed
+
+- **`update-cli` ETXTBSY on Linux** — when `/tmp` and the install path are on different filesystems, `renameSync` fails with `EXDEV` and falls back to `copyFileSync`. That copy now correctly unlinks the running binary first, removing its directory entry while the kernel keeps the inode alive for the running process. Previously the copy failed with `ETXTBSY` (text file busy).
+
+---
+
 ## [1.8.1] — 2026-04-19
 
 ### Added

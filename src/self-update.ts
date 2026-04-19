@@ -119,6 +119,10 @@ export async function runSelfUpdate(currentVersion: string): Promise<void> {
       renameSync(tmpPath, currentBinary);
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
+        // Unlink the running binary first so copyFileSync can write to the path
+        // without hitting ETXTBSY (text file busy). The running process retains
+        // its inode and continues normally.
+        unlinkSync(currentBinary);
         copyFileSync(tmpPath, currentBinary);
         unlinkSync(tmpPath);
       } else {
