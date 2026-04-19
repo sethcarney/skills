@@ -1,4 +1,4 @@
-import { chmodSync, renameSync, writeFileSync } from 'fs';
+import { chmodSync, copyFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -115,7 +115,16 @@ export async function runSelfUpdate(currentVersion: string): Promise<void> {
 
   if (process.platform !== 'win32') {
     chmodSync(tmpPath, 0o755);
-    renameSync(tmpPath, currentBinary);
+    try {
+      renameSync(tmpPath, currentBinary);
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
+        copyFileSync(tmpPath, currentBinary);
+        unlinkSync(tmpPath);
+      } else {
+        throw err;
+      }
+    }
     console.log(`${TEXT}Updated to ${latestVersion} successfully.${RESET}`);
     console.log(
       `${DIM}Restart your shell or run ${TEXT}skills --version${DIM} to confirm.${RESET}`
