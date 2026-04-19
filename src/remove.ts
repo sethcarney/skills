@@ -3,7 +3,7 @@ import pc from 'picocolors';
 import { readdir, rm, lstat } from 'fs/promises';
 import { join } from 'path';
 import { agents, detectInstalledAgents } from './agents.ts';
-import { removeSkillFromLock, getSkillFromLock } from './skill-lock.ts';
+import { removeSkillFromLock } from './skill-lock.ts';
 import type { AgentType } from './types.ts';
 import {
   getInstallPath,
@@ -140,13 +140,7 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
 
   spinner.start('Removing skills...');
 
-  const results: {
-    skill: string;
-    success: boolean;
-    source?: string;
-    sourceType?: string;
-    error?: string;
-  }[] = [];
+  const results: { skill: string; success: boolean; error?: string }[] = [];
 
   for (const skillName of selectedSkills) {
     try {
@@ -207,20 +201,11 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
         await rm(canonicalPath, { recursive: true, force: true });
       }
 
-      const lockEntry = isGlobal ? await getSkillFromLock(skillName) : null;
-      const effectiveSource = lockEntry?.source || 'local';
-      const effectiveSourceType = lockEntry?.sourceType || 'local';
-
       if (isGlobal) {
         await removeSkillFromLock(skillName);
       }
 
-      results.push({
-        skill: skillName,
-        success: true,
-        source: effectiveSource,
-        sourceType: effectiveSourceType,
-      });
+      results.push({ skill: skillName, success: true });
     } catch (err) {
       results.push({
         skill: skillName,
@@ -234,20 +219,6 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
 
   const successful = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
-
-  // Track removal (grouped by source)
-  if (successful.length > 0) {
-    const bySource = new Map<string, { skills: string[]; sourceType?: string }>();
-
-    for (const r of successful) {
-      const source = r.source || 'local';
-      const existing = bySource.get(source) || { skills: [] };
-      existing.skills.push(r.skill);
-      existing.sourceType = r.sourceType;
-      bySource.set(source, existing);
-    }
-
-  }
 
   if (successful.length > 0) {
     p.log.success(pc.green(`Successfully removed ${successful.length} skill(s)`));

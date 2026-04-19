@@ -44,7 +44,6 @@ import {
   type BlobSkill,
   type BlobInstallResult,
 } from './blob.ts';
-// ─── Security Advisory ───
 
 /**
  * Shortens a path for display: replaces homedir with ~ and cwd with .
@@ -1292,8 +1291,6 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
 
     console.log();
     p.note(summaryLines.join('\n'), 'Installation Summary');
-
-
 
     if (!options.yes) {
       const confirmed = await p.confirm({ message: 'Proceed with installation?' });
