@@ -6,6 +6,14 @@ This project is a fork of the upstream [agent-skills](https://agentskills.io) CL
 
 ---
 
+## [1.8.3] — 2026-04-19
+
+### Changed
+
+- Test patch release to verify `update-cli` end-to-end update flow.
+
+---
+
 ## [1.8.2] — 2026-04-19
 
 ### Fixed
