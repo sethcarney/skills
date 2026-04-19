@@ -3,24 +3,13 @@ import pc from 'picocolors';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { sep, relative } from 'path';
-import { parseSource, getOwnerRepo, parseOwnerRepo, isRepoPrivate } from './source-parser.ts';
+import { fetchOSVAdvisories, type OSVSeverity } from './osv.ts';
+import { parseSource, getOwnerRepo } from './source-parser.ts';
 import { searchMultiselect } from './prompts/search-multiselect.ts';
 
 // Helper to check if a value is a cancel symbol (works with both clack and our custom prompts)
 const isCancelled = (value: unknown): value is symbol => typeof value === 'symbol';
 
-/**
- * Check if a source identifier (owner/repo format) represents a private GitHub repo.
- * Returns true if private, false if public, null if unable to determine or not a GitHub repo.
- */
-async function isSourcePrivate(source: string): Promise<boolean | null> {
-  const ownerRepo = parseOwnerRepo(source);
-  if (!ownerRepo) {
-    // Not in owner/repo format, assume not private (could be other providers)
-    return false;
-  }
-  return isRepoPrivate(ownerRepo.owner, ownerRepo.repo);
-}
 import { cloneRepo, cleanupTempDir, GitCloneError } from './git.ts';
 import { discoverSkills, getSkillDisplayName, filterSkills } from './skills.ts';
 import {
@@ -38,13 +27,6 @@ import {
   getNonUniversalAgents,
   isUniversalAgent,
 } from './agents.ts';
-import {
-  track,
-  setVersion,
-  fetchAuditData,
-  type AuditResponse,
-  type PartnerAudit,
-} from './telemetry.ts';
 import { wellKnownProvider, type WellKnownSkill } from './providers/index.ts';
 import {
   addSkillToLock,
@@ -63,94 +45,20 @@ import {
   type BlobSkill,
   type BlobInstallResult,
 } from './blob.ts';
-import packageJson from '../package.json' with { type: 'json' };
-export function initTelemetry(version: string): void {
-  setVersion(version);
-}
 
-// ─── Security Advisory ───
-
-function riskLabel(risk: string): string {
-  switch (risk) {
-    case 'critical':
-      return pc.red(pc.bold('Critical Risk'));
-    case 'high':
-      return pc.red('High Risk');
-    case 'medium':
-      return pc.yellow('Med Risk');
-    case 'low':
-      return pc.green('Low Risk');
-    case 'safe':
-      return pc.green('Safe');
+function osvSeverityLabel(severity: OSVSeverity | null): string {
+  switch (severity) {
+    case 'CRITICAL':
+      return pc.red(pc.bold('Critical'));
+    case 'HIGH':
+      return pc.red('High');
+    case 'MEDIUM':
+      return pc.yellow('Medium');
+    case 'LOW':
+      return pc.green('Low');
     default:
-      return pc.dim('--');
+      return pc.dim('Unknown');
   }
-}
-
-function socketLabel(audit: PartnerAudit | undefined): string {
-  if (!audit) return pc.dim('--');
-  const count = audit.alerts ?? 0;
-  return count > 0 ? pc.red(`${count} alert${count !== 1 ? 's' : ''}`) : pc.green('0 alerts');
-}
-
-/** Pad a string to a given visible width (ignoring ANSI escape codes). */
-function padEnd(str: string, width: number): string {
-  // Strip ANSI codes to measure visible length
-  const visible = str.replace(/\x1b\[[0-9;]*m/g, '');
-  const pad = Math.max(0, width - visible.length);
-  return str + ' '.repeat(pad);
-}
-
-/**
- * Render a compact security table showing partner audit results.
- * Returns the lines to display, or empty array if no data.
- */
-function buildSecurityLines(
-  auditData: AuditResponse | null,
-  skills: Array<{ slug: string; displayName: string }>,
-  source: string
-): string[] {
-  if (!auditData) return [];
-
-  // Check if we have any audit data at all
-  const hasAny = skills.some((s) => {
-    const data = auditData[s.slug];
-    return data && Object.keys(data).length > 0;
-  });
-  if (!hasAny) return [];
-
-  // Compute column width for skill names
-  const nameWidth = Math.min(Math.max(...skills.map((s) => s.displayName.length)), 36);
-
-  // Header
-  const lines: string[] = [];
-  const header =
-    padEnd('', nameWidth + 2) +
-    padEnd(pc.dim('Gen'), 18) +
-    padEnd(pc.dim('Socket'), 18) +
-    pc.dim('Snyk');
-  lines.push(header);
-
-  // Rows
-  for (const skill of skills) {
-    const data = auditData[skill.slug];
-    const name =
-      skill.displayName.length > nameWidth
-        ? skill.displayName.slice(0, nameWidth - 1) + '\u2026'
-        : skill.displayName;
-
-    const ath = data?.ath ? riskLabel(data.ath.risk) : pc.dim('--');
-    const socket = data?.socket ? socketLabel(data.socket) : pc.dim('--');
-    const snyk = data?.snyk ? riskLabel(data.snyk.risk) : pc.dim('--');
-
-    lines.push(padEnd(pc.cyan(name), nameWidth + 2) + padEnd(ath, 18) + padEnd(socket, 18) + snyk);
-  }
-
-  // Footer link
-  lines.push('');
-  lines.push(`${pc.dim('Details:')} ${pc.dim(`https://skills.sh/${source}`)}`);
-
-  return lines;
 }
 
 /**
@@ -353,7 +261,7 @@ export async function promptForAgents(
  * Interactive agent selection using fuzzy search.
  * Shows universal agents as locked (always selected), and other agents as selectable.
  */
-async function selectAgentsInteractive(options: {
+export async function selectAgentsInteractive(options: {
   global?: boolean;
 }): Promise<AgentType[] | symbol> {
   // Filter out agents that don't support global installation when --global is used
@@ -411,11 +319,10 @@ async function selectAgentsInteractive(options: {
   return selected as AgentType[] | symbol;
 }
 
-const version = packageJson.version;
-setVersion(version);
-
 export interface AddOptions {
   global?: boolean;
+  /** Force project-scope install without prompting. Mutually exclusive with --global. */
+  project?: boolean;
   agent?: string[];
   yes?: boolean;
   skill?: string[];
@@ -754,29 +661,7 @@ async function handleWellKnownSkills(
   const successful = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
 
-  // Track installation
   const sourceIdentifier = wellKnownProvider.getSourceIdentifier(url);
-
-  // Build skillFiles map: { skillName: sourceUrl }
-  const skillFiles: Record<string, string> = {};
-  for (const skill of selectedSkills) {
-    skillFiles[skill.installName] = skill.sourceUrl;
-  }
-
-  // Skip telemetry for private GitHub repos
-  const isPrivate = await isSourcePrivate(sourceIdentifier);
-  if (isPrivate !== true) {
-    // Only send telemetry if repo is public (isPrivate === false) or we can't determine (null for non-GitHub sources)
-    track({
-      event: 'install',
-      source: sourceIdentifier,
-      skills: selectedSkills.map((s) => s.installName).join(','),
-      agents: targetAgents.join(','),
-      ...(installGlobally && { global: '1' }),
-      skillFiles: JSON.stringify(skillFiles),
-      sourceType: 'well-known',
-    });
-  }
 
   // Add to skill lock file for update tracking (only for global installs)
   if (successful.length > 0 && installGlobally) {
@@ -1204,14 +1089,11 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       selectedSkills = selected as Skill[];
     }
 
-    // Kick off security audit fetch early (non-blocking) so it runs
-    // in parallel with agent selection, scope, and mode prompts.
-    const ownerRepoForAudit = getOwnerRepo(parsed);
-    const auditPromise = ownerRepoForAudit
-      ? fetchAuditData(
-          ownerRepoForAudit,
-          selectedSkills.map((s) => getSkillDisplayName(s))
-        )
+    // Kick off OSV advisory fetch in parallel while the user answers prompts.
+    // Only runs for GitHub sources; silently skipped otherwise.
+    const ownerRepoForOSV = parsed.type === 'github' ? getOwnerRepo(parsed) : null;
+    const osvPromise = ownerRepoForOSV
+      ? fetchOSVAdvisories(ownerRepoForOSV)
       : Promise.resolve(null);
 
     let targetAgents: AgentType[];
@@ -1288,12 +1170,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       }
     }
 
+    // --project forces project scope; --global forces global scope; prompt otherwise
     let installGlobally = options.global ?? false;
+    if (options.project) installGlobally = false;
 
     // Check if any selected agents support global installation
     const supportsGlobal = targetAgents.some((a) => agents[a].globalSkillsDir !== undefined);
 
-    if (options.global === undefined && !options.yes && supportsGlobal) {
+    if (options.global === undefined && !options.project && !options.yes && supportsGlobal) {
       const scope = await p.select({
         message: 'Installation scope',
         options: [
@@ -1435,25 +1319,25 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     console.log();
     p.note(summaryLines.join('\n'), 'Installation Summary');
 
-    // Await and display security audit results (started earlier in parallel)
-    // Wrapped in try/catch so a failed audit fetch never blocks installation.
+    // Await OSV results and display if any advisories found
     try {
-      const auditData = await auditPromise;
-      if (auditData && ownerRepoForAudit) {
-        const securityLines = buildSecurityLines(
-          auditData,
-          selectedSkills.map((s) => ({
-            slug: getSkillDisplayName(s),
-            displayName: getSkillDisplayName(s),
-          })),
-          ownerRepoForAudit
-        );
-        if (securityLines.length > 0) {
-          p.note(securityLines.join('\n'), 'Security Risk Assessments');
-        }
+      const osvResult = await osvPromise;
+      if (osvResult && osvResult.count > 0) {
+        const lines = [
+          `${pc.yellow('⚠')}  ${pc.bold(String(osvResult.count))} known advisor${osvResult.count === 1 ? 'y' : 'ies'} — highest severity: ${osvSeverityLabel(osvResult.maxSeverity)}`,
+          '',
+          ...osvResult.advisories.slice(0, 5).map((a) => {
+            const summary = a.summary ? pc.dim(` — ${a.summary}`) : '';
+            return `  ${pc.cyan(a.id)}${summary}`;
+          }),
+          ...(osvResult.count > 5 ? [pc.dim(`  … and ${osvResult.count - 5} more`)] : []),
+          '',
+          pc.dim(`Details: https://osv.dev/?q=${encodeURIComponent(ownerRepoForOSV ?? '')}`),
+        ];
+        p.note(lines.join('\n'), 'Security Advisories (OSV)');
       }
     } catch {
-      // Silently skip — security info is advisory only
+      // Never block installation on OSV errors
     }
 
     if (!options.yes) {
@@ -1513,7 +1397,6 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
-    // Track installation result
     // Build skillFiles map: { skillName: relative path to SKILL.md from repo root }
     const skillFiles: Record<string, string> = {};
     for (const skill of selectedSkills) {
@@ -1525,19 +1408,17 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         skillFiles[skill.name] = 'SKILL.md';
       } else if (tempDir && skill.path.startsWith(tempDir + sep)) {
         // Compute path relative to repo root (tempDir), not search path
-        // Use forward slashes for telemetry (URL-style paths)
         skillFiles[skill.name] =
           skill.path
             .slice(tempDir.length + 1)
             .split(sep)
             .join('/') + '/SKILL.md';
       } else {
-        // Local path - skip telemetry for local installs
+        // Local path - skip skill lock tracking for local installs
         continue;
       }
     }
 
-    // Normalize source to owner/repo format for telemetry
     const normalizedSource = getOwnerRepo(parsed);
 
     // Preserve SSH URLs in lock files instead of normalizing to owner/repo shorthand.
@@ -1545,37 +1426,6 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     // breaking restore for private repos that require SSH authentication.
     const isSSH = parsed.url.startsWith('git@');
     const lockSource = isSSH ? parsed.url : normalizedSource;
-
-    // Only track if we have a valid remote source and it's not a private repo
-    if (normalizedSource) {
-      const ownerRepo = parseOwnerRepo(normalizedSource);
-      if (ownerRepo) {
-        // Check if repo is private - skip telemetry for private repos
-        const isPrivate = await isRepoPrivate(ownerRepo.owner, ownerRepo.repo);
-        // Only send telemetry if repo is public (isPrivate === false)
-        // If we can't determine (null), err on the side of caution and skip telemetry
-        if (isPrivate === false) {
-          track({
-            event: 'install',
-            source: normalizedSource,
-            skills: selectedSkills.map((s) => s.name).join(','),
-            agents: targetAgents.join(','),
-            ...(installGlobally && { global: '1' }),
-            skillFiles: JSON.stringify(skillFiles),
-          });
-        }
-      } else {
-        // If we can't parse owner/repo, still send telemetry (for non-GitHub sources)
-        track({
-          event: 'install',
-          source: normalizedSource,
-          skills: selectedSkills.map((s) => s.name).join(','),
-          agents: targetAgents.join(','),
-          ...(installGlobally && { global: '1' }),
-          skillFiles: JSON.stringify(skillFiles),
-        });
-      }
-    }
 
     // Add to skill lock file for update tracking (only for global installs)
     if (successful.length > 0 && installGlobally && normalizedSource) {
@@ -1878,6 +1728,8 @@ export function parseAddOptions(args: string[]): { source: string[]; options: Ad
 
     if (arg === '-g' || arg === '--global') {
       options.global = true;
+    } else if (arg === '-p' || arg === '--project') {
+      options.project = true;
     } else if (arg === '-y' || arg === '--yes') {
       options.yes = true;
     } else if (arg === '-l' || arg === '--list') {

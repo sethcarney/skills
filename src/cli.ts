@@ -6,14 +6,13 @@ import { basename, join, dirname } from 'path';
 import { homedir } from 'os';
 import { fileURLToPath } from 'url';
 import * as p from '@clack/prompts';
-import { runAdd, parseAddOptions, initTelemetry } from './add.ts';
+import { runAdd, parseAddOptions } from './add.ts';
 import { runFind } from './find.ts';
 import { runInstallFromLock } from './install.ts';
 import { runList } from './list.ts';
 import { removeCommand, parseRemoveOptions } from './remove.ts';
 import { runSync, parseSyncOptions } from './sync.ts';
-import { track } from './telemetry.ts';
-import { fetchSkillFolderHash, getGitHubToken } from './skill-lock.ts';
+import { fetchSkillFolderHash, getGitHubToken, getSkillLockPath } from './skill-lock.ts';
 import { readLocalLock, type LocalSkillLockEntry } from './local-lock.ts';
 import {
   buildUpdateInstallSource,
@@ -42,7 +41,6 @@ function getVersion(): string {
 }
 
 const VERSION = getVersion();
-initTelemetry(VERSION);
 
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
@@ -140,7 +138,12 @@ ${BOLD}Project:${RESET}
   init [name]          Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)
   experimental_sync    Sync skills from node_modules into agent directories
 
+${BOLD}Install Options:${RESET}
+  -a, --agent <agents>   Specify agents to install to (skips agent selection prompt)
+  -y, --yes              Skip agent selection prompt (installs to universal agents only)
+
 ${BOLD}Add Options:${RESET}
+  -p, --project          Force project-scope install (writes to skills-lock.json)
   -g, --global           Install skill globally (user-level) instead of project-level
   -a, --agent <agents>   Specify agents to install to (use '*' for all agents)
   -s, --skill <skills>   Specify skill names to install (use '*' for all skills)
@@ -294,8 +297,6 @@ Describe when this skill should be used.
 // Check and Update Commands
 // ============================================
 
-const AGENTS_DIR = '.agents';
-const LOCK_FILE = '.skill-lock.json';
 const CURRENT_LOCK_VERSION = 3; // Bumped from 2 to 3 for folder hash support
 
 interface SkillLockEntry {
@@ -313,14 +314,6 @@ interface SkillLockEntry {
 interface SkillLockFile {
   version: number;
   skills: Record<string, SkillLockEntry>;
-}
-
-function getSkillLockPath(): string {
-  const xdgStateHome = process.env.XDG_STATE_HOME;
-  if (xdgStateHome) {
-    return join(xdgStateHome, 'skills', LOCK_FILE);
-  }
-  return join(homedir(), AGENTS_DIR, LOCK_FILE);
 }
 
 function readSkillLock(): SkillLockFile {
@@ -829,15 +822,6 @@ async function runUpdate(args: string[] = []): Promise<void> {
   if (totalSuccess === 0 && totalFail === 0) {
     // No updates found/attempted - the sub-functions already printed their messages
   }
-
-  // Track telemetry
-  track({
-    event: 'update',
-    scope,
-    skillCount: String(totalSuccess + totalFail),
-    successCount: String(totalSuccess),
-    failCount: String(totalFail),
-  });
 
   console.log();
 }
