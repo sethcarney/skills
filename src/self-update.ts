@@ -1,3 +1,4 @@
+import { spawn } from 'child_process';
 import { chmodSync, copyFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -135,14 +136,21 @@ export async function runSelfUpdate(currentVersion: string): Promise<void> {
     );
   } else {
     // Windows cannot replace a running executable directly.
-    // Write a helper batch file the user can run after exiting.
+    // Spawn a detached batch script that waits for this process to exit,
+    // then moves the downloaded binary into place.
     const batchPath = join(tmpdir(), 'skills-update.bat');
     writeFileSync(
       batchPath,
       `@echo off\r\ntimeout /t 1 /nobreak > NUL\r\nmove /y "${tmpPath}" "${currentBinary}" > NUL\r\ndel "%~f0"\r\n`
     );
-    console.log(`${TEXT}Downloaded ${latestVersion} to:${RESET} ${tmpPath}`);
-    console.log(`${DIM}To apply the update, run after exiting this process:${RESET}`);
-    console.log(`  ${TEXT}${batchPath}${RESET}`);
+    const child = spawn('cmd.exe', ['/c', batchPath], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    child.unref();
+    console.log(`${TEXT}Updated to ${latestVersion} successfully.${RESET}`);
+    console.log(`${DIM}The update will be applied on next run.${RESET}`);
+    process.exit(0);
   }
 }
