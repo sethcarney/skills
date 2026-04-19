@@ -1,6 +1,15 @@
 # skills
 
-The CLI for the open agent skills ecosystem.
+A custom fork of the open agent skills ecosystem CLI with several enhancements over the upstream project.
+
+## What's Different in This Fork
+
+This fork adds a handful of new features on top of the upstream [agent-skills](https://agentskills.io) CLI:
+
+- **Self-update command** — Run `skills update --self` to update the CLI binary in place, no package manager needed
+- **Local skills support** — Per-project skills are discovered and loaded automatically for tighter workspace integration
+- **Telemetry disabled** — All anonymous usage tracking has been removed; no data is collected or sent
+- **Bun binary distribution** — Compiled directly to standalone native executables via Bun instead of npm/npx; no Node.js runtime required
 
 <!-- agent-list:start -->
 
@@ -463,19 +472,11 @@ Ensure you have write access to the target directory.
 | Variable                  | Description                                                                |
 | ------------------------- | -------------------------------------------------------------------------- |
 | `INSTALL_INTERNAL_SKILLS` | Set to `1` or `true` to show and install skills marked as `internal: true` |
-| `DISABLE_TELEMETRY`       | Set to disable anonymous usage telemetry                                   |
-| `DO_NOT_TRACK`            | Alternative way to disable telemetry                                       |
 
 ```bash
 # Install internal skills
 INSTALL_INTERNAL_SKILLS=1 skills add vercel-labs/agent-skills --list
 ```
-
-## Telemetry
-
-This CLI collects anonymous usage data to help improve the tool. No personal information is collected.
-
-Telemetry is automatically disabled in CI environments.
 
 ## Related Links
 

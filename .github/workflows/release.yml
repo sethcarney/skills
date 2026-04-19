@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Get version from package.json
         id: version
@@ -31,11 +31,46 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create GitHub Release
+      - name: Setup Bun
+        if: steps.check.outputs.exists == 'false'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Enable Corepack
+        if: steps.check.outputs.exists == 'false'
+        run: corepack enable
+
+      - name: Setup Node
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build binaries
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          mkdir -p dist-bin
+          bun build --compile --target=bun-linux-x64    --define "__SKILLS_VERSION__='$VERSION'" --outfile=dist-bin/skills-linux-x64        src/cli.ts
+          bun build --compile --target=bun-linux-arm64  --define "__SKILLS_VERSION__='$VERSION'" --outfile=dist-bin/skills-linux-arm64       src/cli.ts
+          bun build --compile --target=bun-darwin-x64   --define "__SKILLS_VERSION__='$VERSION'" --outfile=dist-bin/skills-macos-x64         src/cli.ts
+          bun build --compile --target=bun-darwin-arm64 --define "__SKILLS_VERSION__='$VERSION'" --outfile=dist-bin/skills-macos-arm64       src/cli.ts
+          bun build --compile --target=bun-windows-x64  --define "__SKILLS_VERSION__='$VERSION'" --outfile=dist-bin/skills-windows-x64.exe  src/cli.ts
+
+      - name: Create GitHub Release with binaries
         if: steps.check.outputs.exists == 'false'
         run: |
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "v${{ steps.version.outputs.version }}" \
-            --generate-notes
+            --generate-notes \
+            dist-bin/skills-linux-x64 \
+            dist-bin/skills-linux-arm64 \
+            dist-bin/skills-macos-x64 \
+            dist-bin/skills-macos-arm64 \
+            dist-bin/skills-windows-x64.exe
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
