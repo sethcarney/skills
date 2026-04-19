@@ -3,24 +3,12 @@ import pc from 'picocolors';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { sep, relative } from 'path';
-import { parseSource, getOwnerRepo, parseOwnerRepo, isRepoPrivate } from './source-parser.ts';
+import { parseSource, getOwnerRepo } from './source-parser.ts';
 import { searchMultiselect } from './prompts/search-multiselect.ts';
 
 // Helper to check if a value is a cancel symbol (works with both clack and our custom prompts)
 const isCancelled = (value: unknown): value is symbol => typeof value === 'symbol';
 
-/**
- * Check if a source identifier (owner/repo format) represents a private GitHub repo.
- * Returns true if private, false if public, null if unable to determine or not a GitHub repo.
- */
-async function isSourcePrivate(source: string): Promise<boolean | null> {
-  const ownerRepo = parseOwnerRepo(source);
-  if (!ownerRepo) {
-    // Not in owner/repo format, assume not private (could be other providers)
-    return false;
-  }
-  return isRepoPrivate(ownerRepo.owner, ownerRepo.repo);
-}
 import { cloneRepo, cleanupTempDir, GitCloneError } from './git.ts';
 import { discoverSkills, getSkillDisplayName, filterSkills } from './skills.ts';
 import {
@@ -38,13 +26,7 @@ import {
   getNonUniversalAgents,
   isUniversalAgent,
 } from './agents.ts';
-import {
-  track,
-  setVersion,
-  fetchAuditData,
-  type AuditResponse,
-  type PartnerAudit,
-} from './telemetry.ts';
+import { fetchAuditData, type AuditResponse, type PartnerAudit } from './telemetry.ts';
 import { wellKnownProvider, type WellKnownSkill } from './providers/index.ts';
 import {
   addSkillToLock,
@@ -63,11 +45,6 @@ import {
   type BlobSkill,
   type BlobInstallResult,
 } from './blob.ts';
-import packageJson from '../package.json' with { type: 'json' };
-export function initTelemetry(version: string): void {
-  setVersion(version);
-}
-
 // ─── Security Advisory ───
 
 function riskLabel(risk: string): string {
@@ -411,9 +388,6 @@ async function selectAgentsInteractive(options: {
   return selected as AgentType[] | symbol;
 }
 
-const version = packageJson.version;
-setVersion(version);
-
 export interface AddOptions {
   global?: boolean;
   agent?: string[];
@@ -754,29 +728,7 @@ async function handleWellKnownSkills(
   const successful = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
 
-  // Track installation
   const sourceIdentifier = wellKnownProvider.getSourceIdentifier(url);
-
-  // Build skillFiles map: { skillName: sourceUrl }
-  const skillFiles: Record<string, string> = {};
-  for (const skill of selectedSkills) {
-    skillFiles[skill.installName] = skill.sourceUrl;
-  }
-
-  // Skip telemetry for private GitHub repos
-  const isPrivate = await isSourcePrivate(sourceIdentifier);
-  if (isPrivate !== true) {
-    // Only send telemetry if repo is public (isPrivate === false) or we can't determine (null for non-GitHub sources)
-    track({
-      event: 'install',
-      source: sourceIdentifier,
-      skills: selectedSkills.map((s) => s.installName).join(','),
-      agents: targetAgents.join(','),
-      ...(installGlobally && { global: '1' }),
-      skillFiles: JSON.stringify(skillFiles),
-      sourceType: 'well-known',
-    });
-  }
 
   // Add to skill lock file for update tracking (only for global installs)
   if (successful.length > 0 && installGlobally) {
@@ -1513,7 +1465,6 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
-    // Track installation result
     // Build skillFiles map: { skillName: relative path to SKILL.md from repo root }
     const skillFiles: Record<string, string> = {};
     for (const skill of selectedSkills) {
@@ -1525,19 +1476,17 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         skillFiles[skill.name] = 'SKILL.md';
       } else if (tempDir && skill.path.startsWith(tempDir + sep)) {
         // Compute path relative to repo root (tempDir), not search path
-        // Use forward slashes for telemetry (URL-style paths)
         skillFiles[skill.name] =
           skill.path
             .slice(tempDir.length + 1)
             .split(sep)
             .join('/') + '/SKILL.md';
       } else {
-        // Local path - skip telemetry for local installs
+        // Local path - skip skill lock tracking for local installs
         continue;
       }
     }
 
-    // Normalize source to owner/repo format for telemetry
     const normalizedSource = getOwnerRepo(parsed);
 
     // Preserve SSH URLs in lock files instead of normalizing to owner/repo shorthand.
@@ -1545,37 +1494,6 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     // breaking restore for private repos that require SSH authentication.
     const isSSH = parsed.url.startsWith('git@');
     const lockSource = isSSH ? parsed.url : normalizedSource;
-
-    // Only track if we have a valid remote source and it's not a private repo
-    if (normalizedSource) {
-      const ownerRepo = parseOwnerRepo(normalizedSource);
-      if (ownerRepo) {
-        // Check if repo is private - skip telemetry for private repos
-        const isPrivate = await isRepoPrivate(ownerRepo.owner, ownerRepo.repo);
-        // Only send telemetry if repo is public (isPrivate === false)
-        // If we can't determine (null), err on the side of caution and skip telemetry
-        if (isPrivate === false) {
-          track({
-            event: 'install',
-            source: normalizedSource,
-            skills: selectedSkills.map((s) => s.name).join(','),
-            agents: targetAgents.join(','),
-            ...(installGlobally && { global: '1' }),
-            skillFiles: JSON.stringify(skillFiles),
-          });
-        }
-      } else {
-        // If we can't parse owner/repo, still send telemetry (for non-GitHub sources)
-        track({
-          event: 'install',
-          source: normalizedSource,
-          skills: selectedSkills.map((s) => s.name).join(','),
-          agents: targetAgents.join(','),
-          ...(installGlobally && { global: '1' }),
-          skillFiles: JSON.stringify(skillFiles),
-        });
-      }
-    }
 
     // Add to skill lock file for update tracking (only for global installs)
     if (successful.length > 0 && installGlobally && normalizedSource) {

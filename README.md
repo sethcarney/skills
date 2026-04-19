@@ -6,9 +6,9 @@ A custom fork of the open agent skills ecosystem CLI with several enhancements o
 
 This fork adds a handful of new features on top of the upstream [agent-skills](https://agentskills.io) CLI:
 
-- **Self-update command** — Run `skills update --self` to update the CLI binary in place, no package manager needed
+- **Self-update command** — Run `skills update-cli` to update the CLI binary in place, no package manager needed
 - **Local skills support** — Per-project skills are discovered and loaded automatically for tighter workspace integration
-- **Telemetry disabled** — All anonymous usage tracking has been removed; no data is collected or sent
+- **No telemetry** — Usage tracking code has been removed; no data is collected or sent
 - **Bun binary distribution** — Compiled directly to standalone native executables via Bun instead of npm/npx; no Node.js runtime required
 
 <!-- agent-list:start -->

@@ -3,7 +3,6 @@ import pc from 'picocolors';
 import { readdir, rm, lstat } from 'fs/promises';
 import { join } from 'path';
 import { agents, detectInstalledAgents } from './agents.ts';
-import { track } from './telemetry.ts';
 import { removeSkillFromLock, getSkillFromLock } from './skill-lock.ts';
 import type { AgentType } from './types.ts';
 import {
@@ -248,16 +247,6 @@ export async function removeCommand(skillNames: string[], options: RemoveOptions
       bySource.set(source, existing);
     }
 
-    for (const [source, data] of bySource) {
-      track({
-        event: 'remove',
-        source,
-        skills: data.skills.join(','),
-        agents: targetAgents.join(','),
-        ...(isGlobal && { global: '1' }),
-        sourceType: data.sourceType,
-      });
-    }
   }
 
   if (successful.length > 0) {
