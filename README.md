@@ -1,21 +1,52 @@
 # Skills
 
-A collection of custom agentic coding skills installable via [mdm](https://github.com/sethcarney/mdm).
+Custom agentic coding skills for Claude Code, Cursor, Windsurf, Copilot, and friends.
+
+Install them with **[mdm](https://github.com/sethcarney/mdm)**: one command installs a skill
+into every agent you use, in the format each one expects. No per-agent copying, no
+hand-maintaining four parallel skills directories that drift apart.
 
 ## Install
 
 ```bash
-# Install a specific skill for your configured agents
+# One skill, into your configured agents
 mdm skills add sethcarney/skills --full-depth --skill go-report-card
 
-# Install all skills
+# Everything
 mdm skills add sethcarney/skills --full-depth --all
 
-# Target specific agents
+# Pick the agents explicitly
 mdm skills add sethcarney/skills --full-depth --skill gh-issue -a claude-code cursor
 ```
 
-`mdm` handles placing skills in the right format for each agent (Claude Code, Cursor, Copilot, Windsurf, etc.).
+Agent names: `claude-code`, `cursor`, `windsurf`, `cline`, `roo`, `github-copilot`,
+`gemini-cli`, `codex`, `opencode`.
+
+**Set your agents once** and every later install targets them by default, so you can drop `-a`:
+
+```bash
+mdm agents add claude-code cursor
+```
+
+### Flags worth knowing
+
+| Flag | Why |
+|------|-----|
+| `--full-depth` | **Required for this repo.** Skills live at `plugins/<plugin>/skills/<skill>/SKILL.md`; this tells mdm to search subdirectories for `SKILL.md` instead of only the top level. Without it nothing is found. |
+| `--list`, `-l` | Show what's in the repo without installing anything. |
+| `--all` | Shorthand for `--skill '*' --agent '*' -y` — every skill, every agent, no prompts. |
+| `--global`, `-g` | Install to `~/.agents/skills/` instead of the current project. |
+
+Browse before committing to anything:
+
+```bash
+mdm skills add sethcarney/skills --full-depth --list
+```
+
+On install, mdm scans every markdown file for hidden Unicode characters and runs a security
+audit before anything lands in your agent's skills directory — worth having when the skills
+you're installing are instructions an agent will follow. Installs are recorded in
+`skills-lock.json` so they're reproducible.
 
 ### Claude Code marketplace (alternative)
 
@@ -23,6 +54,8 @@ mdm skills add sethcarney/skills --full-depth --skill gh-issue -a claude-code cu
 /plugin marketplace add sethcarney/skills
 /plugin install go-report-card@sethcarney-skills
 ```
+
+Works fine, but it's Claude Code only — the other agents on your machine won't see these skills.
 
 ## Plugin Catalog
 
@@ -32,6 +65,15 @@ mdm skills add sethcarney/skills --full-depth --skill gh-issue -a claude-code cu
 | [godot](plugins/godot/) | [godot-cli](plugins/godot/skills/godot-cli/SKILL.md) | Godot 4.6 CLI build verification and headless validation |
 | [github-pm](plugins/github-pm/) | [gh-issue](plugins/github-pm/skills/gh-issue/SKILL.md), [gh-project-scope](plugins/github-pm/skills/gh-project-scope/SKILL.md) | Create well-structured GitHub issues with acceptance criteria and scope a project into milestones via the GitHub CLI |
 | [dependabot](plugins/dependabot/) | [dependabot-groups](plugins/dependabot/skills/dependabot-groups/SKILL.md) | Group dependencies that must be upgraded together into a single Dependabot PR and cut PR noise |
+
+Copy-paste, one line per skill (`--skill` repeats, so grab several at once):
+
+```bash
+mdm skills add sethcarney/skills --full-depth -s go-report-card
+mdm skills add sethcarney/skills --full-depth -s godot-cli
+mdm skills add sethcarney/skills --full-depth -s gh-issue -s gh-project-scope
+mdm skills add sethcarney/skills --full-depth -s dependabot-groups
+```
 
 ## How Skills Work
 
@@ -59,7 +101,20 @@ The markdown body contains the actual instructions — workflows, reference tabl
 
 1. To add a skill to an existing plugin, create `plugins/<plugin>/skills/<your-skill>/SKILL.md`
 2. To add a new plugin, create `plugins/<your-plugin>/skills/` and add an entry to `.claude-plugin/marketplace.json`
-3. Open a PR
+3. Test it locally before opening a PR:
+
+   ```bash
+   # Confirm mdm discovers your skill and reads its frontmatter
+   mdm skills add . --full-depth --list
+
+   # Install straight from your working copy and try it for real
+   mdm skills add ./plugins/<plugin>/skills/<your-skill> -a claude-code
+   ```
+
+   If your skill doesn't show up in `--list`, the frontmatter is malformed or the
+   directory is nested somewhere `SKILL.md` discovery won't reach.
+
+4. Open a PR
 
 Guidelines:
 - Keep skill names lowercase with hyphens
