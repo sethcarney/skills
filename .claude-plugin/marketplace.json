@@ -1,0 +1,44 @@
+{
+  "name": "skills",
+  "owner": {
+    "name": "sethcarney"
+  },
+  "metadata": {
+    "description": "A collection of AI coding assistant plugins",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "go-report-card",
+      "description": "Go quality checks — tests, vulnerability scan, cyclomatic complexity, and formatting",
+      "version": "1.0.0",
+      "source": "./plugins/go-report-card",
+      "category": "go",
+      "keywords": ["go", "golang", "quality", "testing", "vuln", "gocyclo", "gofmt"]
+    },
+    {
+      "name": "godot",
+      "description": "Godot 4.6 skills — CLI build verification, headless validation, one-shot animation patterns for AnimationTree state machines",
+      "version": "1.0.0",
+      "source": "./plugins/godot",
+      "category": "gamedev",
+      "keywords": ["godot", "gamedev", "cli", "animation", "animationtree"]
+    },
+    {
+      "name": "github-pm",
+      "description": "GitHub project management skills — create well-structured issues with acceptance criteria and scope a project into milestones using the GitHub CLI",
+      "version": "1.0.0",
+      "source": "./plugins/github-pm",
+      "category": "project-management",
+      "keywords": ["github", "issues", "project-management", "milestone", "acceptance-criteria", "gh-cli"]
+    },
+    {
+      "name": "dependabot",
+      "description": "Dependabot configuration skills — group dependencies that must be upgraded together into a single PR and cut down Dependabot PR noise",
+      "version": "1.0.0",
+      "source": "./plugins/dependabot",
+      "category": "dependency-management",
+      "keywords": ["dependabot", "dependencies", "github-actions", "grouping", "ci", "yaml", "pull-requests"]
+    }
+  ]
+}
