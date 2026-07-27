@@ -39,6 +39,14 @@
       "source": "./plugins/dependabot",
       "category": "dependency-management",
       "keywords": ["dependabot", "dependencies", "github-actions", "grouping", "ci", "yaml", "pull-requests"]
+    },
+    {
+      "name": "dev-container",
+      "description": "Dev container skills — wrap the development environment in a dev container, run Claude Code inside it, and persist authentication across rebuilds",
+      "version": "1.0.0",
+      "source": "./plugins/dev-container",
+      "category": "environment",
+      "keywords": ["devcontainer", "docker", "codespaces", "claude-code", "vscode", "environment", "credentials"]
     }
   ]
 }

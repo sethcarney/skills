@@ -65,6 +65,7 @@ Works fine, but it's Claude Code only — the other agents on your machine won't
 | [godot](plugins/godot/) | [godot-cli](plugins/godot/skills/godot-cli/SKILL.md) | Godot 4.6 CLI build verification and headless validation |
 | [github-pm](plugins/github-pm/) | [gh-issue](plugins/github-pm/skills/gh-issue/SKILL.md), [gh-project-scope](plugins/github-pm/skills/gh-project-scope/SKILL.md) | Create well-structured GitHub issues with acceptance criteria and scope a project into milestones via the GitHub CLI |
 | [dependabot](plugins/dependabot/) | [dependabot-groups](plugins/dependabot/skills/dependabot-groups/SKILL.md) | Group dependencies that must be upgraded together into a single Dependabot PR and cut PR noise |
+| [dev-container](plugins/dev-container/) | [dev-container](plugins/dev-container/skills/dev-container/SKILL.md) | Wrap the dev environment in a dev container, run Claude Code inside it, and persist auth across rebuilds |
 
 Copy-paste, one line per skill (`--skill` repeats, so grab several at once):
 
@@ -73,6 +74,7 @@ mdm skills add sethcarney/skills --full-depth -s go-report-card
 mdm skills add sethcarney/skills --full-depth -s godot-cli
 mdm skills add sethcarney/skills --full-depth -s gh-issue -s gh-project-scope
 mdm skills add sethcarney/skills --full-depth -s dependabot-groups
+mdm skills add sethcarney/skills --full-depth -s dev-container
 ```
 
 ## How Skills Work
@@ -141,5 +143,8 @@ plugins/
   dependabot/
     skills/
       dependabot-groups/SKILL.md  # Group must-match dependencies into one Dependabot PR
+  dev-container/
+    skills/
+      dev-container/SKILL.md      # Dev container setup with Claude Code + persistent auth
 .claude/skills/                    # Active copies for local dev
 ```
