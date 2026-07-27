@@ -145,6 +145,10 @@ plugins/
       dependabot-groups/SKILL.md  # Group must-match dependencies into one Dependabot PR
   dev-container/
     skills/
-      dev-container/SKILL.md      # Dev container setup with Claude Code + persistent auth
+      dev-container/
+        SKILL.md                  # Dev container setup with Claude Code + persistent auth
+        scripts/                  # check-devcontainer-auth.py regression guard
+        tests/                    # Fixtures + runner for the guard
+.github/workflows/                 # CI: runs the dev-container guard suite
 .claude/skills/                    # Active copies for local dev
 ```

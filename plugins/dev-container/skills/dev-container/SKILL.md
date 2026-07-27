@@ -254,16 +254,40 @@ Each of these is independent — apply only what the user asks for.
 
 ### Guard against regression
 
-These failures are silent: nothing errors, the login just stops persisting. If the
-repo has a test suite, assert against `devcontainer.json` that:
+These failures are silent: nothing errors, the login just stops persisting. This
+skill ships a checker that turns that into a loud failure —
+[`scripts/check-devcontainer-auth.py`](scripts/check-devcontainer-auth.py), stdlib
+Python 3, no dependencies:
 
-1. The Claude Code feature is present.
-2. `containerEnv.CLAUDE_CONFIG_DIR` equals `/home/<remoteUser>/.claude`.
-3. A mount targets that same path with `type=volume`, not `type=bind`.
+```bash
+# Checks .devcontainer/devcontainer.json by default
+python3 scripts/check-devcontainer-auth.py
 
-Derive the expected path from the file's own `remoteUser` rather than hardcoding
-it — that catches the case where someone swaps the base image and the three paths
-drift apart.
+# Or name files explicitly
+python3 scripts/check-devcontainer-auth.py path/to/devcontainer.json
+```
+
+Copy it into the target repo and run it in CI. It exits non-zero when:
+
+1. `containerEnv.CLAUDE_CONFIG_DIR` is missing — **the exact bug this skill
+   exists to prevent**, where a `~/.claude` volume is mounted but the OAuth
+   session in `~/.claude.json` is still discarded.
+2. `CLAUDE_CONFIG_DIR` and the mount target disagree, or either disagrees with
+   `remoteUser`'s home. The expected path is derived from the file's own
+   `remoteUser`, so this catches a base-image swap leaving the three paths
+   drifted apart.
+3. No mount targets the config directory.
+4. That mount is `type=bind` rather than a named volume.
+5. `remoteUser` is root or unset.
+
+It exits 0 when there is no `devcontainer.json`, and skips a file that has no
+Claude Code feature — pass `--require-feature` to make that a failure instead.
+
+The suite in [`tests/`](tests/) exercises it against fixtures for each failure
+mode; run `tests/run-tests.sh` after changing the checker.
+
+If you'd rather write the assertions into an existing test suite than copy the
+script, the three properties to assert are the checker's items 1–4 above.
 
 ### Pin the feature in devcontainer-lock.json
 

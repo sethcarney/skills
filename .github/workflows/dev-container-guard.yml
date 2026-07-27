@@ -1,0 +1,32 @@
+name: dev-container guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: check-devcontainer-auth fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # The guard ships as part of the dev-container skill, so its own test
+      # suite runs here. Fixtures cover each way the three-setting auth config
+      # can silently drift.
+      - name: Run guard test suite
+        run: plugins/dev-container/skills/dev-container/tests/run-tests.sh
+
+      # This repo has no .devcontainer/ of its own today. The checker exits 0
+      # when there is nothing to find, so this step is a no-op now and starts
+      # guarding for real the moment someone adds one.
+      - name: Check this repo's own devcontainer.json, if it has one
+        run: python3 plugins/dev-container/skills/dev-container/scripts/check-devcontainer-auth.py

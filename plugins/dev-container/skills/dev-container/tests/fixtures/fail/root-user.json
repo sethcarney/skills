@@ -1,0 +1,6 @@
+{
+  "features": { "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {} },
+  "mounts": [ "source=claude-code-config,target=/root/.claude,type=volume" ],
+  "containerEnv": { "CLAUDE_CONFIG_DIR": "/root/.claude" },
+  "remoteUser": "root"
+}
