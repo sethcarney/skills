@@ -66,6 +66,7 @@ Works fine, but it's Claude Code only — the other agents on your machine won't
 | [github-pm](plugins/github-pm/) | [gh-issue](plugins/github-pm/skills/gh-issue/SKILL.md), [gh-project-scope](plugins/github-pm/skills/gh-project-scope/SKILL.md) | Create well-structured GitHub issues with acceptance criteria and scope a project into milestones via the GitHub CLI |
 | [dependabot](plugins/dependabot/) | [dependabot-groups](plugins/dependabot/skills/dependabot-groups/SKILL.md) | Group dependencies that must be upgraded together into a single Dependabot PR and cut PR noise |
 | [dev-container](plugins/dev-container/) | [dev-container](plugins/dev-container/skills/dev-container/SKILL.md) | Wrap the dev environment in a dev container, run Claude Code inside it, and persist auth across rebuilds |
+| [sandbox](plugins/sandbox/) | [sandbox-claude-code](plugins/sandbox/skills/sandbox-claude-code/SKILL.md), [bash-sandbox](plugins/sandbox/skills/bash-sandbox/SKILL.md), [claude-permissions](plugins/sandbox/skills/claude-permissions/SKILL.md), [sandbox-runtime](plugins/sandbox/skills/sandbox-runtime/SKILL.md) | Pick an isolation posture for a repo and verify it, configure the built-in Bash sandbox, write permission rules, or wrap the whole process without Docker |
 
 Copy-paste, one line per skill (`--skill` repeats, so grab several at once):
 
@@ -75,6 +76,20 @@ mdm skills add sethcarney/skills --full-depth -s godot-cli
 mdm skills add sethcarney/skills --full-depth -s gh-issue -s gh-project-scope
 mdm skills add sethcarney/skills --full-depth -s dependabot-groups
 mdm skills add sethcarney/skills --full-depth -s dev-container
+mdm skills add sethcarney/skills --full-depth -s sandbox-claude-code -s bash-sandbox -s claude-permissions -s sandbox-runtime
+```
+
+### Sandboxing a new repo
+
+`sandbox-claude-code` is the entry point: it picks an isolation boundary for the
+threat model, applies it, and then **verifies** it with a checker you can run in
+CI. The recommended default is a dev container for the outer boundary, the
+built-in Bash sandbox inside it, and permission rules on top — the three cover
+different surfaces, and none of them covers all of it alone.
+
+```bash
+python3 plugins/sandbox/skills/sandbox-claude-code/scripts/check-sandbox.py
+python3 plugins/sandbox/skills/sandbox-claude-code/scripts/check-sandbox.py --strict --require-devcontainer
 ```
 
 ## How Skills Work
@@ -149,6 +164,15 @@ plugins/
         SKILL.md                  # Dev container setup with Claude Code + persistent auth
         scripts/                  # check-devcontainer-auth.py regression guard
         tests/                    # Fixtures + runner for the guard
-.github/workflows/                 # CI: runs the dev-container guard suite
+  sandbox/
+    skills/
+      sandbox-claude-code/
+        SKILL.md                  # Pick, apply, and verify an isolation posture
+        scripts/                  # check-sandbox.py posture audit
+        tests/                    # Fixtures + runner for the audit
+      bash-sandbox/SKILL.md       # The built-in sandboxed Bash tool
+      claude-permissions/SKILL.md # Permission rules and modes
+      sandbox-runtime/SKILL.md    # Whole-process isolation without Docker
+.github/workflows/                 # CI: runs the dev-container and sandbox guard suites
 .claude/skills/                    # Active copies for local dev
 ```

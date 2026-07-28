@@ -1,0 +1,38 @@
+name: sandbox guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: check-sandbox fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # The checker ships as part of the sandbox-claude-code skill, so its own
+      # test suite runs here. Fixtures cover each way an isolation posture can
+      # look configured while enforcing nothing.
+      - name: Run guard test suite
+        run: plugins/sandbox/skills/sandbox-claude-code/tests/run-tests.sh
+
+      # This repo has no .claude/settings.json of its own today. When someone
+      # adds one, this step starts holding it to the same standard the skill
+      # recommends to everyone else.
+      - name: Check this repo's own Claude Code settings, if it has any
+        run: |
+          if [ -f .claude/settings.json ]; then
+            python3 plugins/sandbox/skills/sandbox-claude-code/scripts/check-sandbox.py \
+              .claude/settings.json
+          else
+            echo "No .claude/settings.json, nothing to check."
+          fi

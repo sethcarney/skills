@@ -47,6 +47,14 @@
       "source": "./plugins/dev-container",
       "category": "environment",
       "keywords": ["devcontainer", "docker", "codespaces", "claude-code", "vscode", "environment", "credentials"]
+    },
+    {
+      "name": "sandbox",
+      "description": "Claude Code isolation skills — choose and apply a sandboxing posture for a repository, configure the built-in Bash sandbox, write permission rules, and wrap the whole process with the sandbox runtime",
+      "version": "1.0.0",
+      "source": "./plugins/sandbox",
+      "category": "security",
+      "keywords": ["sandbox", "security", "isolation", "permissions", "seatbelt", "bubblewrap", "claude-code", "hardening"]
     }
   ]
 }
