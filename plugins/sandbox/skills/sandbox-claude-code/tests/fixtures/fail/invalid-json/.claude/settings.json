@@ -1,0 +1,8 @@
+{
+  // Comments and trailing commas are tolerated; a missing brace is not.
+  "sandbox": {
+    "enabled": true,
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"],
+    }
+}

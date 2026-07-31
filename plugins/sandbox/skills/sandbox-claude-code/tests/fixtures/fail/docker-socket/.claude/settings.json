@@ -1,0 +1,13 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"],
+      "allowUnixSockets": ["/var/run/docker.sock"]
+    }
+  },
+  "permissions": {
+    "deny": ["Read(./.env)", "Read(~/.ssh/**)", "Read(~/.aws/**)"]
+  }
+}
