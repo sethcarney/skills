@@ -33,6 +33,14 @@ expect() {
 	shift 2
 	local out rc name
 	name="$(basename "$dir")"
+	# A fixture that isn't on disk makes the cd below fail, and a failed cd
+	# exits 1 -- indistinguishable from a fail fixture doing its job. Check
+	# first so a missing fixture is reported as missing.
+	if [ ! -d "$dir" ]; then
+		fail=$((fail + 1))
+		printf '  FAIL  %-28s no such fixture directory\n' "$name"
+		return
+	fi
 	mapfile -t files < <(fixture_args "$dir")
 	out="$(cd "$dir" && python3 "$checker" "${files[@]}" "$@" 2>&1)"
 	rc=$?
@@ -46,11 +54,25 @@ expect() {
 	fi
 }
 
+# An unmatched glob stays literal, so an empty fixtures/fail/ would run one
+# "fixture" named * that fails to cd and exits 1 -- a whole missing suite
+# reporting itself as a pass. Require the glob to have matched something.
+expect_all() {
+	local want="$1" root="$2"
+	local dirs=("${root}"/*/)
+	if [ ! -d "${dirs[0]}" ]; then
+		fail=$((fail + 1))
+		printf '  FAIL  %-28s no fixtures found under %s\n' "$(basename "$root")" "$root"
+		return
+	fi
+	for d in "${dirs[@]}"; do expect "$want" "${d%/}"; done
+}
+
 echo "expecting exit 0:"
-for d in "${here}"/fixtures/pass/*/; do expect 0 "${d%/}"; done
+expect_all 0 "${here}/fixtures/pass"
 
 echo "expecting exit 1:"
-for d in "${here}"/fixtures/fail/*/; do expect 1 "${d%/}"; done
+expect_all 1 "${here}/fixtures/fail"
 
 # The hardened fixture has no devcontainer, so --require-devcontainer must turn
 # a clean pass into a failure.

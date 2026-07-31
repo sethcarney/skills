@@ -1,0 +1,15 @@
+{
+  "sandbox": {
+    "enabled": false,
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"]
+    }
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)"
+    ]
+  }
+}

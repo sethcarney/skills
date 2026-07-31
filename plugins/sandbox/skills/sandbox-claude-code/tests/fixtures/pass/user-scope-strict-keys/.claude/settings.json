@@ -1,0 +1,25 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "excludedCommands": ["docker *"],
+    "network": {
+      "allowedDomains": ["registry.npmjs.org", "github.com"]
+    },
+    "credentials": {
+      "files": [
+        { "path": "~/.aws/credentials", "mode": "deny" },
+        { "path": "~/.ssh", "mode": "deny" }
+      ],
+      "envVars": [{ "name": "GITHUB_TOKEN", "mode": "deny" }]
+    }
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Bash(curl *)"
+    ]
+  }
+}
