@@ -1,0 +1,44 @@
+{
+  "name": "skills",
+
+  // The guard checkers (check-devcontainer-auth.py, check-sandbox.py) and both
+  // test suites are stdlib Python 3, so the Python image is the closest match.
+  // Note that devcontainers/base:ubuntu ships no python3 at all.
+  "image": "mcr.microsoft.com/devcontainers/python:3",
+
+  "features": {
+    // Required by the Claude Code feature, which installs the CLI over npm.
+    // The Python image ships no Node, so without this the build fails with
+    // "Node.js and npm are required but could not be installed".
+    "ghcr.io/devcontainers/features/node:1": {},
+
+    // Installs the Claude Code CLI. The tag pins the feature's install script,
+    // not the CLI release -- Claude Code auto-updates itself in the container.
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+
+    // mdm. Note the doubled path segment: the feature is published at
+    // ghcr.io/sethcarney/mdm/mdm. The similarly named ghcr.io/sethcarney/mdm
+    // is the collection index and cannot be referenced as a feature.
+    "ghcr.io/sethcarney/mdm/mdm:1": {}
+  },
+
+  // The next three settings must all name the same directory, and that
+  // directory must be remoteUser's home. Every way of getting this wrong fails
+  // silently -- no error, just a sign-in prompt on every rebuild.
+  // scripts/check-devcontainer-auth.py guards it, and runs in CI.
+  "mounts": [
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+
+  "containerEnv": {
+    // A volume on ~/.claude alone does NOT persist the login: the OAuth session
+    // lives in ~/.claude.json, beside the directory rather than inside it.
+    // This relocates the whole config directory so one volume covers all of it.
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+  },
+
+  "remoteUser": "vscode",
+
+  // Repairs ownership of the root-owned config volume. See the script.
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}

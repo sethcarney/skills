@@ -25,8 +25,11 @@ jobs:
       - name: Run guard test suite
         run: plugins/dev-container/skills/dev-container/tests/run-tests.sh
 
-      # This repo has no .devcontainer/ of its own today. The checker exits 0
-      # when there is nothing to find, so this step is a no-op now and starts
-      # guarding for real the moment someone adds one.
-      - name: Check this repo's own devcontainer.json, if it has one
-        run: python3 plugins/dev-container/skills/dev-container/scripts/check-devcontainer-auth.py
+      # This repo now has a .devcontainer/ of its own, so this step guards for
+      # real: the skill's own advice, held to its own standard.
+      # --require-feature means dropping the Claude Code feature fails here
+      # rather than silently downgrading the check to a skip.
+      - name: Check this repo's own devcontainer.json
+        run: |
+          python3 plugins/dev-container/skills/dev-container/scripts/check-devcontainer-auth.py \
+            --require-feature

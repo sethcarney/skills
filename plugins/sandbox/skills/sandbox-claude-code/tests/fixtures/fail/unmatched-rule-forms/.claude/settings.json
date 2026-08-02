@@ -12,6 +12,7 @@
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Write(./src/**)",
+      "NotebookEdit(./notebooks/**)",
       "Glob(./secrets/**)"
     ]
   }

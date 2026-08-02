@@ -102,6 +102,10 @@ inside the container. To pin the CLI, see [Pin the CLI version](#pin-the-cli-ver
 The feature auto-adds the `anthropic.claude-code` VS Code extension; other editors
 ignore that part.
 
+If the repo keeps instruction files or skills under version control, pair this with
+the [mdm feature](#manage-instruction-files-and-skills-with-mdm) so both are
+installed the same way.
+
 It declares `installsAfter: ["ghcr.io/devcontainers/features/node"]`, which is an
 ordering hint rather than a hard dependency — Anthropic's minimal example pairs the
 feature with a bare base image and no Node feature. If a build fails during feature
@@ -358,6 +362,74 @@ checked in beside the dev container config. Note that *personal* MCP servers liv
 in `.claude.json`, so they persist only once step 3 is correct. Install any
 binaries local stdio servers depend on in the Dockerfile, and add remote server
 domains to the network allowlist if a firewall is in use.
+
+### Manage instruction files and skills with mdm
+
+A repo that checks in `AGENTS.md`, `CLAUDE.md`, or a `skills-lock.json` needs those
+restored inside the container too. [`mdm`](https://github.com/sethcarney/mdm) is a
+markdown management CLI that installs skills from GitHub, GitLab, URLs, or the
+[skills.sh](https://skills.sh) registry, and symlinks each agent's instruction file
+to a single canonical one. It ships as a dev container feature, so declare it rather
+than scripting a download:
+
+```jsonc
+"features": {
+  "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+  "ghcr.io/sethcarney/mdm/mdm:1": {}
+}
+```
+
+The feature fetches the release binary for the container's architecture, verifies it
+against that release's `sha256sums.txt`, and installs it to `/usr/local/bin/mdm` —
+no Go toolchain in the image, and the path is on `PATH` for every user regardless of
+`remoteUser`. Debian/Ubuntu images on `linux/amd64` and `linux/arm64`. Pin a release
+for reproducible builds, the same reasoning as
+[Pin the CLI version](#pin-the-cli-version):
+
+```jsonc
+"ghcr.io/sethcarney/mdm/mdm:1": { "version": "1.9.1" }
+```
+
+**Feature scripts run at image build, before the workspace is mounted.** So the
+feature only puts the binary on `PATH` — any command that reads or writes the repo
+has to go in a lifecycle command, which runs after the workspace exists:
+
+```jsonc
+"postCreateCommand": "mdm skills install"
+```
+
+`mdm rules link`, which makes `AGENTS.md` the source of truth and symlinks the other
+agents' filenames to it, belongs in the same slot.
+
+**Watch the collision with [step 4](#4-fix-volume-ownership).** That step also claims
+`postCreateCommand` for the volume-ownership repair, and a second `postCreateCommand`
+key silently replaces the first — the login then stops persisting for a reason that
+looks nothing like this change. Run both, keyed so each is named in the logs:
+
+```jsonc
+"postCreateCommand": {
+  "claude-config-perms": "CLAUDE_DIR=\"${HOME}/.claude\"; if [ -d \"$CLAUDE_DIR\" ] && [ ! -w \"$CLAUDE_DIR\" ]; then sudo chown -R \"$(id -u):$(id -g)\" \"$CLAUDE_DIR\"; fi",
+  "mdm-skills": "mdm skills install"
+}
+```
+
+The object form runs its entries in **parallel**; these two are independent, so that
+is fine. If you add a third that depends on one of them, chain it with `&&` inside a
+single entry instead.
+
+Two knock-on effects elsewhere in this skill:
+
+- **Egress firewall.** If you apply [Restrict network egress](#restrict-network-egress),
+  allow `github.com`, `api.github.com`, and `objects.githubusercontent.com` or
+  `mdm skills install` fails at create time. Add `skills.sh` only if the repo
+  actually sources skills from the registry.
+- **Lock file.** `devcontainer-lock.json` pins this feature by the same mechanism as
+  [the Claude Code one](#pin-the-feature-in-devcontainer-lockjson) — substitute
+  `ghcr.io/sethcarney/mdm/mdm` in the digest lookup.
+
+This is orthogonal to the authentication problem in step 3: mdm state lives in the
+repository, not in the config volume, so nothing here changes what survives a
+rebuild.
 
 ### Restrict network egress
 
