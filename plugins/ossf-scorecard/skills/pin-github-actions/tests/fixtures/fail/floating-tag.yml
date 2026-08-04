@@ -1,0 +1,9 @@
+# The ordinary case: a major-version tag, which the action's owner can move.
+name: floating
+on: [push]
+permissions: read-all
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5

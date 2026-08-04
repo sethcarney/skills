@@ -55,6 +55,14 @@
       "source": "./plugins/sandbox",
       "category": "security",
       "keywords": ["sandbox", "security", "isolation", "permissions", "seatbelt", "bubblewrap", "claude-code", "hardening"]
+    },
+    {
+      "name": "ossf-scorecard",
+      "description": "Supply-chain hardening skills — bring a repository up to a high OpenSSF Scorecard score, and pin every GitHub Action to a commit SHA",
+      "version": "1.0.0",
+      "source": "./plugins/ossf-scorecard",
+      "category": "security",
+      "keywords": ["ossf", "scorecard", "supply-chain", "security", "github-actions", "pinning", "cosign", "slsa", "codeql", "dependabot", "branch-protection"]
     }
   ]
 }

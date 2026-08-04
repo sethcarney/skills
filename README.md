@@ -67,6 +67,7 @@ Works fine, but it's Claude Code only — the other agents on your machine won't
 | [dependabot](plugins/dependabot/) | [dependabot-groups](plugins/dependabot/skills/dependabot-groups/SKILL.md) | Group dependencies that must be upgraded together into a single Dependabot PR and cut PR noise |
 | [dev-container](plugins/dev-container/) | [dev-container](plugins/dev-container/skills/dev-container/SKILL.md) | Wrap the dev environment in a dev container, run Claude Code inside it, and persist auth across rebuilds |
 | [sandbox](plugins/sandbox/) | [sandbox-claude-code](plugins/sandbox/skills/sandbox-claude-code/SKILL.md), [bash-sandbox](plugins/sandbox/skills/bash-sandbox/SKILL.md), [claude-permissions](plugins/sandbox/skills/claude-permissions/SKILL.md), [sandbox-runtime](plugins/sandbox/skills/sandbox-runtime/SKILL.md) | Pick an isolation posture for a repo and verify it, configure the built-in Bash sandbox, write permission rules, or wrap the whole process without Docker |
+| [ossf-scorecard](plugins/ossf-scorecard/) | [ossf-scorecard](plugins/ossf-scorecard/skills/ossf-scorecard/SKILL.md), [pin-github-actions](plugins/ossf-scorecard/skills/pin-github-actions/SKILL.md) | Bring a repo up to a high OpenSSF Scorecard score — Scorecard/CodeQL/Dependabot wiring, signed releases, and the branch-protection checklist — or just pin every action to a commit SHA |
 
 Copy-paste, one line per skill (`--skill` repeats, so grab several at once):
 
@@ -77,6 +78,7 @@ mdm skills add sethcarney/skills --full-depth -s gh-issue -s gh-project-scope
 mdm skills add sethcarney/skills --full-depth -s dependabot-groups
 mdm skills add sethcarney/skills --full-depth -s dev-container
 mdm skills add sethcarney/skills --full-depth -s sandbox-claude-code -s bash-sandbox -s claude-permissions -s sandbox-runtime
+mdm skills add sethcarney/skills --full-depth -s ossf-scorecard -s pin-github-actions
 ```
 
 ### Sandboxing a new repo
@@ -90,6 +92,27 @@ different surfaces, and none of them covers all of it alone.
 ```bash
 python3 plugins/sandbox/skills/sandbox-claude-code/scripts/check-sandbox.py
 python3 plugins/sandbox/skills/sandbox-claude-code/scripts/check-sandbox.py --strict --require-devcontainer
+```
+
+### Hardening a repo's supply chain
+
+`ossf-scorecard` is the entry point: it wires up Scorecard, CodeQL and
+Dependabot, pins every action, signs releases, and then writes out the
+branch-protection and repository-settings checklist that no file in a repo can
+configure — which is where most of the score actually lives.
+
+It is deliberately honest about the checks that cannot be reached. Code-Review
+scores 0 on a single-maintainer repo because Scorecard excludes the author from
+the reviewer count, and the skill says so rather than suggesting you self-approve
+pull requests to raise it.
+
+```bash
+# Report every action that is pinned to a moving tag. No network calls.
+python3 plugins/ossf-scorecard/skills/pin-github-actions/scripts/pin-actions.py --check
+
+# Resolve them all to commit SHAs and rewrite in place.
+GITHUB_TOKEN=$(gh auth token) \
+  python3 plugins/ossf-scorecard/skills/pin-github-actions/scripts/pin-actions.py
 ```
 
 ## How Skills Work
@@ -173,6 +196,15 @@ plugins/
       bash-sandbox/SKILL.md       # The built-in sandboxed Bash tool
       claude-permissions/SKILL.md # Permission rules and modes
       sandbox-runtime/SKILL.md    # Whole-process isolation without Docker
-.github/workflows/                 # CI: runs the dev-container and sandbox guard suites
+  ossf-scorecard/
+    skills/
+      ossf-scorecard/
+        SKILL.md                  # The whole Scorecard procedure, step by step
+        references/               # Per-check reference + GitHub settings checklist
+      pin-github-actions/
+        SKILL.md                  # Why SHA-pin, and the one action that must not be
+        scripts/                  # pin-actions.py resolver and --check guard
+        tests/                    # Fixtures + runner for the guard
+.github/workflows/                 # CI: runs the dev-container, sandbox and pin-actions guard suites
 .claude/skills/                    # Active copies for local dev
 ```

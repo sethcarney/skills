@@ -1,0 +1,38 @@
+name: ossf-scorecard guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: pin-actions fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # The pinning checker ships as part of the pin-github-actions skill, so
+      # its own test suite runs here. Fixtures cover each way an action can
+      # float — a moving tag, a branch, a short SHA — and each ref that is
+      # correctly exempt. --check makes no network calls, so this cannot flake
+      # on a GitHub API rate limit.
+      - name: Run guard test suite
+        run: plugins/ossf-scorecard/skills/pin-github-actions/tests/run-tests.sh
+
+      # A skill that tells other repositories to pin their actions should pin
+      # its own. This step is expected to FAIL today — the workflows in this
+      # repo use floating tags — so it is reported without failing the run
+      # until that is fixed, and then the `|| true` comes off.
+      - name: Check this repo's own action pins
+        continue-on-error: true
+        run: |
+          python3 plugins/ossf-scorecard/skills/pin-github-actions/scripts/pin-actions.py \
+            --check .github/workflows

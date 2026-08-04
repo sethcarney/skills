@@ -1,0 +1,9 @@
+# Worse than a tag: a branch ref is whatever was pushed to it this morning.
+name: branch
+on: [push]
+permissions: read-all
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: some-org/some-action@main

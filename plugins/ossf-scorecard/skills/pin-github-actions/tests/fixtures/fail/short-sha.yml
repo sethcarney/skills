@@ -1,0 +1,9 @@
+# A short SHA is not a pin: it is a prefix, and GitHub resolves prefixes.
+name: short
+on: [push]
+permissions: read-all
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e # v7.0.1
