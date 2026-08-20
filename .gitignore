@@ -2,4 +2,5 @@
 # root on purpose: an unanchored `.claude` also matches the nested
 # `.claude/settings.json` files the sandbox test fixtures are built from, and
 # silently drops them from every commit.
-/.claude/
+.claude/*
+!.claude/settings.json
