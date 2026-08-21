@@ -65,6 +65,7 @@ Works fine, but it's Claude Code only — the other agents on your machine won't
 | [godot](plugins/godot/) | [godot-cli](plugins/godot/skills/godot-cli/SKILL.md) | Godot 4.6 CLI build verification and headless validation |
 | [github-pm](plugins/github-pm/) | [gh-issue](plugins/github-pm/skills/gh-issue/SKILL.md), [gh-project-scope](plugins/github-pm/skills/gh-project-scope/SKILL.md) | Create well-structured GitHub issues with acceptance criteria and scope a project into milestones via the GitHub CLI |
 | [dependabot](plugins/dependabot/) | [dependabot-groups](plugins/dependabot/skills/dependabot-groups/SKILL.md) | Group dependencies that must be upgraded together into a single Dependabot PR and cut PR noise |
+| [openssf-scorecard](plugins/openssf-scorecard/) | [openssf-scorecard](plugins/openssf-scorecard/skills/openssf-scorecard/SKILL.md) | Audit and raise an OpenSSF Scorecard score — install the workflow, pin actions by SHA, fix workflow permissions, and hand over the settings checklist |
 | [dev-container](plugins/dev-container/) | [dev-container](plugins/dev-container/skills/dev-container/SKILL.md) | Wrap the dev environment in a dev container, run Claude Code inside it, and persist auth across rebuilds |
 | [sandbox](plugins/sandbox/) | [sandbox-claude-code](plugins/sandbox/skills/sandbox-claude-code/SKILL.md), [bash-sandbox](plugins/sandbox/skills/bash-sandbox/SKILL.md), [claude-permissions](plugins/sandbox/skills/claude-permissions/SKILL.md), [sandbox-runtime](plugins/sandbox/skills/sandbox-runtime/SKILL.md) | Pick an isolation posture for a repo and verify it, configure the built-in Bash sandbox, write permission rules, or wrap the whole process without Docker |
 
@@ -75,6 +76,7 @@ mdm skills add sethcarney/skills --full-depth -s go-report-card
 mdm skills add sethcarney/skills --full-depth -s godot-cli
 mdm skills add sethcarney/skills --full-depth -s gh-issue -s gh-project-scope
 mdm skills add sethcarney/skills --full-depth -s dependabot-groups
+mdm skills add sethcarney/skills --full-depth -s openssf-scorecard
 mdm skills add sethcarney/skills --full-depth -s dev-container
 mdm skills add sethcarney/skills --full-depth -s sandbox-claude-code -s bash-sandbox -s claude-permissions -s sandbox-runtime
 ```
@@ -158,6 +160,12 @@ plugins/
   dependabot/
     skills/
       dependabot-groups/SKILL.md  # Group must-match dependencies into one Dependabot PR
+  openssf-scorecard/
+    skills/
+      openssf-scorecard/
+        SKILL.md                  # Audit and raise an OpenSSF Scorecard score
+        references/               # Per-check guidance; the GitHub-side checklist
+        assets/                   # Drop-in scorecard.yml workflow
   dev-container/
     skills/
       dev-container/
