@@ -3,5 +3,36 @@
     "commit": "",
     "pr": "",
     "sessionUrl": false
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "enableWeakerNestedSandbox": true,
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "*.githubusercontent.com"
+      ]
+    },
+    "credentials": {
+      "files": [
+        { "path": "~/.aws/credentials", "mode": "deny" },
+        { "path": "~/.ssh", "mode": "deny" }
+      ],
+      "envVars": [
+        { "name": "GITHUB_TOKEN", "mode": "deny" }
+      ]
+    }
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ]
   }
 }
